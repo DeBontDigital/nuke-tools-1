@@ -1,0 +1,227 @@
+Group {
+ name Overkill
+ help "Easy to use gunfire node."
+ knobChanged "\nimport nuke\n\n# Get the current node and knob being changed\nm = nuke.thisNode()\nkc = nuke.thisKnob()\n\n# If the knob being changed is one of these, continue with the script\nif kc.name() in ['num', 'showGun', 'muzzleConfigure']:\n\n    # Get the specific nodes named that are created\n    gunAxis = nuke.toNode('Gun_Axis')\n    gunMesh = nuke.toNode('Gun_Mesh')\n    gunTrans = nuke.toNode('GunTransfrom')\n    bullet = nuke.toNode('Bullet_Anim')\n    inputDot = nuke.toNode('animInput')\n    muzzleConf = nuke.toNode('MergeGeo3')\n    out = nuke.toNode('Output1')\n\n    # Changes the visability of the gun mesh\n    gunTrans.knob('disable').setExpression('1-[value parent.showGun]')\n    if (gunTrans.knob('disable').value()):\n        gunTrans.setInput(0, None)\n    else:\n        gunTrans.setInput(0, gunMesh)\n    \n    # Delete all nodes except those with 'static' in their label\n    for n in nuke.allNodes():\n      if 'static' not in n['label'].getValue():\n          nuke.delete(n)\n\n    # Get the values of the relevant knobs\n    num = int(m['num'].value())\n\n    # Create Scene(3D) node for output\n    scn = nuke.nodes.Scene()\n    \n    if m['muzzleConfigure'].value():\n        scn.setInput(0, muzzleConf)\n        scn.setInput(1, None)\n        nuke.toNode('muzzleFrameHold').knob('disable').setValue(False)\n    else:\n        nuke.toNode('muzzleFrameHold').knob('disable').setValue(True)\n        scn.setInput(0, gunTrans)\n        \n    scn.setXYpos(-1130, -798)\n\n    # Create a variable for offset in x axes\n    offsetX = 50\n\n    # Loop through each frame and create a TimeOffset and Merge2 node for each one\n    for x in range(0,num,1):\n\n        # add variable 'i' to count from 1 instead of 0  \n        i = x + 1\n        offsetX = offsetX+(offsetX*-1) \n\n        # set variables for certain expressions\n        beforeFire = '[if {[value frame]>=[value FrameHold%d.firstFrame] && [value frame]<[expression (([value FrameHold%d.firstFrame])+parent.footageLength)]} {return 0} {return 1}]'\n        \n        # Create a FrameHold node and set its input to the 'gunAxis' node\n        fh = nuke.nodes.FrameHold()\n        fh.setInput(0, gunAxis)\n        fh.knob('firstFrame').setExpression('parent.shotFrame%d' % i)\n        fh.setXYpos((gunAxis.xpos()+150),(gunAxis.ypos()+(100*i+150)))\n        fh.knob('disable').setExpression(beforeFire % (i, i))\n\n        # Create a TimeOffset node and set its input to the 'bullet' node\n        to = nuke.nodes.TimeOffset()\n        to.setInput(0, inputDot)\n        to.knob('time_offset').setExpression('parent.FrameHold%d.firstFrame' % i)\n        to.setXYpos(inputDot.xpos(),(gunAxis.ypos()+(100*i+100)))\n        to.knob('disable').setExpression(beforeFire % (i, i))\n\n        # Create a TransformGeo node and set its input to the 'TimeOffset' and 'FrameHold' nodes\n        tg = nuke.nodes.TransformGeo()\n        tg.setInput(0, to)\n        tg.setInput(1, fh)\n        tg.setXYpos((inputDot.xpos()+150),(gunAxis.ypos()+(100*i+150)))\n        tg.knob('disable').setExpression(beforeFire % (i, i))\n\n        sw = nuke.nodes.Switch()\n        sw.setInput(0, tg)\n        sw.setXYpos((tg.xpos()+100),(tg.ypos()))\n        sw.knob('which').setExpression(beforeFire % (i, i))\n\n        # Set the input of the Scene(3D) to all the TransformGeo nodes created\n        scn.setInput(x+1, sw)\n\n    # Set the input of the output node to the 'Scene' node\n    out.setInput(0, scn)\n"
+ tile_color 0x73351fff
+ label (3D)
+ selected true
+ xpos -1690
+ ypos 910
+ addUserKnob {20 User}
+ addUserKnob {3 num l "number of gunshots" t "How many gunshots are fired."}
+ addUserKnob {6 showGun l "Show gun" t "Change the visability of the gun mesh in the viewport." +STARTLINE}
+ showGun true
+ addUserKnob {26 ""}
+ addUserKnob {26 Credits l "" -STARTLINE T "<font size=2>Overkill 1.0 - &copy; 2022-2023 - </font><a href=\"https://www.debontdigital.nl/\"><font color=\"#bbbbbb\" size=2>De Bont Digital</a></font>"}
+ addUserKnob {20 singleShots l "Single Shots"}
+ addUserKnob {3 shotFrame1 l "Shot frame 1"}
+ shotFrame1 10
+ addUserKnob {3 shotFrame2 l "Shot frame 2"}
+ shotFrame2 20
+ addUserKnob {3 shotFrame3 l "Shot frame 3"}
+ shotFrame3 30
+ addUserKnob {3 shotFrame4 l "Shot frame 4"}
+ shotFrame4 40
+ addUserKnob {3 shotFrame5 l "Shot frame 5"}
+ shotFrame5 50
+ addUserKnob {3 shotFrame6 l "Shot frame 6"}
+ shotFrame6 60
+ addUserKnob {3 shotFrame7 l "Shot frame 7"}
+ shotFrame7 70
+ addUserKnob {3 shotFrame8 l "Shot frame 8"}
+ shotFrame8 80
+ addUserKnob {3 shotFrame9 l "Shot frame 9"}
+ shotFrame9 90
+ addUserKnob {3 shotFrame10 l "Shot frame 10"}
+ shotFrame10 100
+ addUserKnob {20 muzzleFlash l "Muzzle Flash"}
+ addUserKnob {6 muzzleConfigure l "Muzzle Configure Mode" +STARTLINE}
+ addUserKnob {20 muzzle3DPosition l "Muzzle 3D Position" n 1}
+ addUserKnob {6 positionSphere l "3D Position Sphere" t "Adds a sphere into your 3D viewport. This makes it easier to position your muzzle." +STARTLINE}
+ positionSphere true
+ addUserKnob {13 muzzlePosition l "Muzzle Position" t "Set the position of the muzzle."}
+ muzzlePosition {0 1.8 44}
+ addUserKnob {13 muzzleRotation l "Muzzle Rotation" t "Set the rotation of the muzzle."}
+ addUserKnob {20 endGroup_1 n -1}
+ addUserKnob {26 ""}
+ addUserKnob {20 footageManipulation l "Footage Manipulation" n 1}
+ addUserKnob {7 footageLength l "Footage Length in frames" t "Total number of frames of the muzzle footage" R 1 100}
+ footageLength 10
+ addUserKnob {12 offsetImage l "Offset Image" t "Tweak the position of the muzzle flash footage."}
+ offsetImage {0 9.2}
+ addUserKnob {12 rotateImage l "Rotate Image" t "Tweak the rotation of the muzzle flash footage."}
+ addUserKnob {7 muzzleScale l "Muzzle Scale" t "Tweak the scaling of the muzzle footage." R 1 10}
+ muzzleScale 1
+ addUserKnob {20 endGroup n -1}
+}
+ BackdropNode {
+  inputs 0
+  name BackdropNode1
+  tile_color 0x740000ff
+  label "<center>Merge casing & muzzle\n-- static --"
+  note_font "Titillium Web"
+  note_font_size 42
+  xpos -2325
+  ypos -1666
+  appearance Border
+  bdwidth 760
+  bdheight 548
+ }
+ Input {
+  inputs 0
+  name Gun_Axis
+  label static
+  xpos -1910
+  ypos -903
+  number 2
+ }
+ Input {
+  inputs 0
+  name Gun_Mesh
+  label static
+  xpos -2130
+  ypos -783
+  number 3
+ }
+set N99baa000 [stack 0]
+ TransformGeo {
+  inputs 2
+  name GunTransfrom
+  label static
+  xpos -1910
+  ypos -783
+  disable {{"1-\[value parent.showGun]"}}
+ }
+ Scene {
+  name Scene1
+  xpos -1130
+  ypos -798
+ }
+ Output {
+  name Output1
+  label static
+  xpos -920
+  ypos -783
+ }
+push $N99baa000
+ CheckerBoard2 {
+  inputs 0
+  boxsize 100
+  centerlinewidth 50
+  name CheckerBoard1
+  label static
+  xpos -2240
+  ypos -1449
+ }
+ Sphere {
+  selectable false
+  render_mode off
+  cast_shadow false
+  receive_shadow false
+  rows 4
+  columns 10
+  name PositionSphere
+  label static
+  xpos -2240
+  ypos -1311
+  disable {{1-parent.positionSphere}}
+ }
+ Input {
+  inputs 0
+  name Muzzle_Flash
+  label static
+  xpos -2100
+  ypos -1498
+  number 1
+ }
+add_layer {muzzle_flash muzzle.red muzzle.green muzzle.blue muzzle.alpha}
+ Shuffle2 {
+  fromInput1 {{0} B}
+  fromInput2 {{0} B}
+  out2 muzzle_flash
+  mappings "8 rgba.red 0 0 rgba.red 0 0 rgba.green 0 1 rgba.green 0 1 rgba.blue 0 2 rgba.blue 0 2 rgba.alpha 0 3 rgba.alpha 0 3 rgba.red 0 0 muzzle.red 1 0 rgba.green 0 1 muzzle.green 1 1 rgba.blue 0 2 muzzle.blue 1 2 rgba.alpha 0 3 muzzle.alpha 1 3"
+  name Shuffle1
+  label static
+  xpos -2100
+  ypos -1455
+ }
+ FrameHold {
+  name muzzleFrameHold
+  label static
+  xpos -2100
+  ypos -1413
+  disable true
+ }
+ set C3864d600 [stack 0]
+ Card2 {
+  orientation YZ
+  rows 2
+  columns 2
+  translate {0 {parent.offsetImage.x} {parent.offsetImage.y}}
+  uniform_scale 25
+  control_points {3 3 3 6 
+
+1 {0 -0.5 -0.5} 0 {0 0 0.1666666865} 0 {0 0 0} 0 {0 0.1666666865 0} 0 {0 0 0} 0 {0 0 0} 
+1 {0 -0.5 0} 0 {0 0 0.1666666716} 0 {0 0 -0.1666666716} 0 {0 0.1666666865 0} 0 {0 0 0} 0 {0.5 0 0} 
+1 {0 -0.5 0.5} 0 {0 0 0} 0 {0 0 -0.1666666865} 0 {0 0.1666666865 0} 0 {0 0 0} 0 {1 0 0} 
+1 {0 0 -0.5} 0 {0 0 0.1666666865} 0 {0 0 0} 0 {0 0.1666666716 0} 0 {0 -0.1666666716 0} 0 {0 0.5 0} 
+1 {0 0 0} 0 {0 0 0.1666666716} 0 {0 0 -0.1666666716} 0 {0 0.1666666716 0} 0 {0 -0.1666666716 0} 0 {0.5 0.5 0} 
+1 {0 0 0.5} 0 {0 0 0} 0 {0 0 -0.1666666865} 0 {0 0.1666666716 0} 0 {0 -0.1666666716 0} 0 {1 0.5 0} 
+1 {0 0.5 -0.5} 0 {0 0 0.1666666865} 0 {0 0 0} 0 {0 0 0} 0 {0 -0.1666666865 0} 0 {0 1 0} 
+1 {0 0.5 0} 0 {0 0 0.1666666716} 0 {0 0 -0.1666666716} 0 {0 0 0} 0 {0 -0.1666666865 0} 0 {0.5 1 0} 
+1 {0 0.5 0.5} 0 {0 0 0} 0 {0 0 -0.1666666865} 0 {0 0 0} 0 {0 -0.1666666865 0} 0 {1 1 0} }
+  name MuzzleFlashCard2
+  label static
+  xpos -2100
+  ypos -1359
+ }
+ MergeGeo {
+  inputs 2
+  name MergeGeo2
+  label static
+  xpos -2100
+  ypos -1311
+ }
+ TransformGeo {
+  translate {{parent.muzzlePosition} {parent.muzzlePosition} {parent.muzzlePosition}}
+  rotate {{parent.muzzleRotation} {parent.muzzleRotation} {parent.muzzleRotation}}
+  uniform_scale 2
+  name MuzzlePos
+  label static
+  xpos -2100
+  ypos -1215
+ }
+ Input {
+  inputs 0
+  name Bullet_Anim
+  label static
+  xpos -1910
+  ypos -1503
+ }
+ MergeGeo {
+  inputs 2
+  name MergeGeo1
+  label static
+  xpos -1910
+  ypos -1215
+ }
+ Dot {
+  name animInput
+  label static
+  xpos -1656
+  ypos -1206
+ }
+clone $C3864d600 {
+  xpos -1140
+  ypos -1221
+  selected false
+ }
+ MergeGeo {
+  inputs 2
+  name MergeGeo3
+  label static
+  xpos -1140
+  ypos -1167
+  hide_input true
+ }
+end_group
